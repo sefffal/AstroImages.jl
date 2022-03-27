@@ -1,5 +1,17 @@
+
+
+
 @userplot ImPlot
 @recipe function f(h::ImPlot)
+    return ImPlotter(h.args)
+end
+
+# We need an extra layer of indirection to make marginalimplot() work.
+struct ImPlotter
+    args
+end
+@recipe function f(h::ImPlotter)
+    @show typeof(h.args)
     if length(h.args) != 1 || !(typeof(h.args[1]) <: AbstractArray)
         error("Image plots require an arugment that is a subtype of AbstractArray.  Got: $(typeof(h.args))")
     end
@@ -11,7 +23,6 @@
     if ndims(data) != 2
         error("Image passed to `implot` must be two-dimensional.  Got ndims(img)=$(ndims(img))")
     end
-
 
     # Show WCS coordinates if wcsticks is true or unspecified, and has at least one WCS axis present.
     showwcsticks = (!haskey(plotattributes, :wcsticks) || plotattributes[:wcsticks]) &&
@@ -1033,5 +1044,49 @@ function wcsvecticks(w,coords,ax,minx,maxx)
     griduv = posuv[:,1]
     griduv[ax,:] .= urange
     posxy = world_to_pix(wsg.w, griduv)
+
+end
+
+
+
+@userplot MarginalImPlot
+@recipe function f(h::MarginalImPlot)
+    img = only(h.args)
+    layout := @layout[
+        A{0.75w}        _
+        B{0.75w, 0.75h} C
+    ]
+
+
+    @series begin
+        subplot := 1
+        seriestype := :bar
+        label --> ""
+        xticks := []
+        xlims := extrema(axes(img,1)) .+ (-0.5, +0.5)
+        reverse(sum(img,dims=2)[:])
+    end
+
+    @series begin
+        subplot := 3
+        seriestype := :bar
+        label --> ""
+        orientation := :horizontal
+        yticks := []
+        ylims := extrema(axes(img,2)) .+ (-0.5, +0.5)
+        reverse(sum(img,dims=1)[:])
+    end
+
+    @series begin
+        subplot := 2
+        # ImPlot(h.args)
+        # seriestype := :implot
+        # ImPlotter((img,))
+        imgv = imview(img)
+        yflip := false
+        xflip := false
+        view(arraydata(imgv), reverse(axes(imgv,1)),:)
+    end
+
 
 end
