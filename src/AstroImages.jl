@@ -406,6 +406,8 @@ function Base.setindex!(img::AstroImage, v, ind::AbstractString)  # modifying he
         getfield(img, :wcs_stale)[] = true
     end
 end
+# Special case to fix ambiguity when indexing zero-dimensional arrays
+Base.getindex(img::AstroImage) = getindex(parent(img))
 Base.getindex(img::AstroImage, inds::Symbol...) = getindex(img, string.(inds)...) # accessing header using symbol
 Base.setindex!(img::AstroImage, v, ind::Symbol) = setindex!(img, v, string(ind))
 Base.getindex(img::AstroImage, ind::AbstractString, ::Type{Comment}) = get_comment(header(img), ind) # accesing header comment using strings
